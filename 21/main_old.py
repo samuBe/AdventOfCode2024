@@ -112,41 +112,39 @@ def gen_seq(seq, dir):
 dir_dir = gen_dict(direction_pad)
 # Combine into a dictionary by checking the best path
 
-cache = dict()
-def cost(start, end, i, dir):
-    if (start, end, i) in cache:
-        return cache[(start, end, i)]
-    if start == end:
-        return 1
-    if i == 0:
-        return 1
+dir_dir_optimized = dict()
+for key, val in dir_dir.items():
+    dir_dir_optimized[key] = list()
+    for seq in val:
+        temp = dir_dir[("A", seq[0])]
+        for i in range(len(seq)-1):
+            sub_seqs = dir_dir[(seq[i], seq[i + 1])]
+            temp2 = []
+            for sub_seq in sub_seqs:
+                for t in temp:
+                    temp2.append(t + sub_seq)
+            temp = temp2
+        print(temp)
+        dir_dir_optimized[key] += (temp)
+    temp = dir_dir_optimized[key]
+    dir_dir_optimized[key] = min(temp, key=lambda seq: len(seq))
+    temp = dir_dir_optimized[key]
 
-    seqs = dir[(start, end)]
-    c = min([cost("A", seq[0], i-1, dir) + sum([cost(seq[j], seq[j + 1], i-1, dir) for j in range(len(seq)-1)]) for seq in seqs])
-    cache[(start, end, i)] = c
-    return c
 
-n = 25
-cost_dict = dict()
-for k in dir_dir.keys():
-    start, end = k
-    print(start, end)
-    cost_dict[k] = cost(start, end, n, dir_dir)
-print(cost_dict)
-
+print(dir_dir_optimized)
 number_dir = gen_dict(number_pad)
 # Combine into a new dictionary by checking the best path
 
-number_dir_cost = dict()
+final_dir = dict()
 for key, val in number_dir.items():
-    min_cost = INF
+    min_len = INF
     for path in val:
-        cost = cost_dict[("A", path[0])]
-        for i in range(len(path)-1):
-            cost += cost_dict[(path[i], path[i + 1])]
-        if cost < min_cost:
-            min_cost = cost
-    number_dir_cost[key] = min_cost
+        sim_path = gen_seq(path, dir_dir_optimized)
+        if len(sim_path) < min_len:
+            min_len = len(sim_path)
+            min = sim_path
+
+    final_dir[key] = min
 
 fname = "input.txt"
 with open(fname) as f:
@@ -154,12 +152,13 @@ with open(fname) as f:
     lines = f.readlines()
     for line in lines:
         seq = line.strip()
-        cost = number_dir_cost[("A", seq[0])]
-        for i in range(len(seq) - 1):
-            cost += number_dir_cost[(seq[i], seq[i + 1])]
-        print("cost", cost)
+        three = gen_seq(seq, final_dir)
+        print("three", three)
+        print(len(three))
+        print()
 
-        complexity = int(seq[:-1]) * cost
+
+        complexity = int(seq[:-1]) * len(three)
         total += complexity
-    print(total)
+        print(total)
 

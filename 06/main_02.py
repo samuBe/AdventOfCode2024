@@ -47,17 +47,21 @@ class Grid:
     def start(self):
         guard = self.guard
         is_in_bounds = True
+        route = list()
 
         while is_in_bounds:
+            route.append((guard.pos, guard.dir))
             guard.forward()
             is_in_bounds = self.test_in_bounds(guard.pos)
+
+        return route
 
 
 class Cell:
 
     def __init__(self, icon):
         self.icon = icon
-        self.obstacle = icon == '#'
+        self.obstacle = icon == '#' or icon == 'O'
         self.visited = False
         self.possible = False
         self.dir_visited = None
@@ -84,34 +88,49 @@ class Guard:
         newPos = (newPos_x, newPos_y)
         cell = self.grid.get(newPos)
         if cell is None:
-            self.grid.get(self.pos).icon = "X"
             self.pos = newPos
-            return
+            return None
 
         if cell.obstacle:
             self.turn()
         else:
-            if cell.visited:
-                dir_x, dir_y = cell.dir_visited
-                print(cell.dir_visited)
-                print(self.dir)
-                print('----')
-                self.possible = (dir_x == self.dir[1]) and (dir_y == -self.dir[0])
-            self.grid.get(self.pos).icon = "X"
             self.pos = newPos
-            cell.dir_visited = self.dir
-            cell.visited = True
-            cell.icon = "^"
+        return self.pos
 
 
-fname = "test.txt"
+fname = "input.txt"
 with open(fname) as f:
     lines = f.readlines()
     grid = Grid(lines)
     print(grid.shape)
     print(grid.guard.pos)
+    orig_p = grid.guard.pos
+    orig_d = grid.guard.dir
     print(grid)
-    grid.start()
-    answer = grid.get_possible()
-    print(answer)
+    route = grid.start()
+    t = set()
+    for temp in route:
+        pos, dir = temp
+        new_pos_x, new_pos_y = pos[0] + dir[0], pos[1] + dir[1]
+        if not grid.test_in_bounds((new_pos_x, new_pos_y)):
+            break
+        if grid.grid[new_pos_x][new_pos_y].icon == '#':
+            continue
+        grid.grid[new_pos_x][new_pos_y] = Cell('O')
+        grid.guard = Guard(orig_p, orig_d, grid)
+        is_in_bounds = True
+        visited = set()
+        while is_in_bounds:
+            visited.add((grid.guard.pos, grid.guard.dir))
+            grid.guard.forward()
+            is_in_bounds = grid.test_in_bounds(grid.guard.pos)
+            if grid.guard.pos is None:
+                break
+            if grid.guard.pos is not None and (grid.guard.pos, grid.guard.dir) in visited:
+                print(grid)
+                t.add((new_pos_x, new_pos_y))
+                break
+        grid.grid[new_pos_x][new_pos_y] = Cell('.')
 
+    print(t)
+    print(len(t))
